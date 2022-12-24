@@ -1,0 +1,17 @@
+syntax="proto3";
+
+package invoice;
+
+message GetInvoiceByIdRequest {
+  string id = 1;  
+}
+
+message GetInvoiceByIdResponse {
+  string id = 1;
+  string name = 2;
+  int32 price = 3;
+}
+
+service InvoiceService {
+  rpc getInvoiceById(GetInvoiceByIdRequest) returns(GetInvoiceByIdResponse);
+}
