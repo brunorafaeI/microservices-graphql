@@ -1,10 +1,12 @@
 import { Module } from "@nestjs/common";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_GUARD, APP_FILTER } from "@nestjs/core";
 import { GraphQLModule } from "@nestjs/graphql";
 import { ApolloDriver, ApolloDriverConfig } from "@nestjs/apollo";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { ClientsModule, Transport } from "@nestjs/microservices";
 import * as path from "node:path";
+
+import { AppFilter } from "./app.filter";
 
 import { GqlThrottlerGuard } from "./app.guard";
 
@@ -31,7 +33,11 @@ import { AppResolver } from "./app.resolver";
         transport: Transport.KAFKA,
         options: {
           client: {
+            clientId: "user",
             brokers: ["localhost:9092"],
+          },
+          consumer: {
+            groupId: "user-consumer",
           },
         },
       },
@@ -50,6 +56,10 @@ import { AppResolver } from "./app.resolver";
   ],
   providers: [
     AppResolver,
+    {
+      provide: APP_FILTER,
+      useClass: AppFilter,
+    },
     {
       provide: APP_GUARD,
       useClass: GqlThrottlerGuard,

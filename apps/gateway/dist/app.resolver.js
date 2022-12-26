@@ -12,7 +12,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AppResolver = exports.Welcome = exports.Queue = void 0;
+exports.AppResolver = exports.Invoice = exports.Queue = void 0;
 const graphql_1 = require("@nestjs/graphql");
 const microservices_1 = require("@nestjs/microservices");
 const grpc_js_1 = require("@grpc/grpc-js");
@@ -67,7 +67,16 @@ __decorate([
 Welcome = __decorate([
     (0, graphql_1.ObjectType)()
 ], Welcome);
-exports.Welcome = Welcome;
+let Invoice = class Invoice {
+};
+__decorate([
+    (0, graphql_1.Field)(),
+    __metadata("design:type", Welcome)
+], Invoice.prototype, "invoice", void 0);
+Invoice = __decorate([
+    (0, graphql_1.ObjectType)()
+], Invoice);
+exports.Invoice = Invoice;
 const pubSub = new graphql_subscriptions_1.PubSub();
 let AppResolver = class AppResolver {
     constructor(client, invoice) {
@@ -75,18 +84,33 @@ let AppResolver = class AppResolver {
         this.invoice = invoice;
     }
     onModuleInit() {
-        this.invoiceService = this.invoice.getService("InvoiceService");
+        this.invoiceService =
+            this.invoice.getService("InvoiceService");
     }
-    async wellcome(ctx) {
+    async welcome(ctx) {
         const { authorization } = ctx.req.headers;
-        const metadata = new grpc_js_1.Metadata();
-        metadata.set("authorization", authorization);
-        const source = this.invoiceService.getInvoiceById({ id: "1000" }, metadata);
-        const data = await (0, rxjs_1.firstValueFrom)(source);
+        try {
+            const metadata = new grpc_js_1.Metadata();
+            metadata.set("authorization", authorization);
+            const source = this.invoiceService.getById({ id: "1000" }, metadata);
+            const data = await (0, rxjs_1.firstValueFrom)(source);
+            console.log(data);
+            pubSub.publish("welcome", data.invoice.name);
+            return data;
+        }
+        catch (error) {
+            throw new microservices_1.RpcException({ code: error.code, message: error.message });
+        }
+    }
+    async hello() {
+        const response = await fetch("http://192.168.31.124:4002/invoice");
+        const data = await response.json();
         return data;
     }
     async create() {
-        return "Foi";
+        const source = this.client.emit("user.create", JSON.stringify({ id: "1", name: "John", email: "example@email.com" }));
+        const data = await (0, rxjs_1.firstValueFrom)(source);
+        return data;
     }
     userBanned() {
         this.client.emit("user.banned", JSON.stringify({ id: "1", name: "John", email: "example@email.com" }));
@@ -98,6 +122,9 @@ let AppResolver = class AppResolver {
         const data = await (0, rxjs_1.firstValueFrom)(source);
         return data;
     }
+    async welcomeWatch() {
+        return pubSub.asyncIterator("welcome");
+    }
     async createUser() {
         return pubSub.asyncIterator("createUser");
     }
@@ -106,15 +133,21 @@ let AppResolver = class AppResolver {
     }
 };
 __decorate([
-    (0, graphql_1.Query)(() => Welcome, { name: "welcome" }),
+    (0, graphql_1.Query)(() => Invoice, { name: "welcome" }),
     __param(0, (0, graphql_1.Context)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
-], AppResolver.prototype, "wellcome", null);
+], AppResolver.prototype, "welcome", null);
+__decorate([
+    (0, graphql_1.Query)(() => Welcome, { nullable: true, name: "hello" }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AppResolver.prototype, "hello", null);
 __decorate([
     (0, throttler_1.Throttle)(10, 60),
-    (0, graphql_1.Mutation)(() => String, { name: "createUser" }),
+    (0, graphql_1.Mutation)(() => [Queue], { name: "createUser" }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
@@ -131,6 +164,18 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AppResolver.prototype, "createInvoice", null);
+__decorate([
+    (0, throttler_1.SkipThrottle)(),
+    (0, graphql_1.Subscription)(() => String, {
+        resolve(value) {
+            return value;
+        },
+        name: "welcomeWatch",
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AppResolver.prototype, "welcomeWatch", null);
 __decorate([
     (0, throttler_1.SkipThrottle)(),
     (0, graphql_1.Subscription)(() => String, {

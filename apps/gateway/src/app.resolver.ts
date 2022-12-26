@@ -7,12 +7,15 @@ import {
   Resolver,
   Subscription,
 } from "@nestjs/graphql";
-import { ClientGrpc, ClientKafka } from "@nestjs/microservices";
+import { ClientGrpc, ClientKafka, RpcException } from "@nestjs/microservices";
 import { Metadata } from "@grpc/grpc-js";
 import { PubSub } from "graphql-subscriptions";
 import { Inject } from "@nestjs/common";
 import { SkipThrottle, Throttle } from "@nestjs/throttler";
 import { firstValueFrom } from "rxjs";
+import { Observable } from "rxjs";
+
+import { GraphQLError } from "graphql";
 
 @ObjectType()
 export class Queue {
@@ -36,7 +39,7 @@ export class Queue {
 }
 
 @ObjectType()
-export class Welcome {
+class Welcome {
   @Field()
   id: string;
 
@@ -47,43 +50,71 @@ export class Welcome {
   price: number;
 }
 
+@ObjectType()
+export class Invoice {
+  @Field()
+  invoice: Welcome;
+}
+
 const pubSub = new PubSub();
+
+type GetByIdRequest = {
+  id: string;
+};
+interface InvoiceService {
+  getById(request: GetByIdRequest, metadata: Metadata): Observable<any>;
+}
 
 @Resolver()
 export class AppResolver {
-  private invoiceService;
+  private invoiceService: InvoiceService;
   constructor(
     @Inject("USER_SERVICE") private readonly client: ClientKafka,
     @Inject("INVOICE_PACKAGE") private readonly invoice: ClientGrpc
   ) {}
 
   onModuleInit() {
-    this.invoiceService = this.invoice.getService("InvoiceService");
+    this.invoiceService =
+      this.invoice.getService<InvoiceService>("InvoiceService");
   }
 
-  @Query(() => Welcome, { name: "welcome" })
-  async wellcome(@Context() ctx: any): Promise<Welcome> {
+  @Query(() => Invoice, { name: "welcome" })
+  async welcome(@Context() ctx: any): Promise<Invoice> {
     const { authorization } = ctx.req.headers;
 
-    const metadata = new Metadata();
-    metadata.set("authorization", authorization);
-    const source = this.invoiceService.getInvoiceById({ id: "1000" }, metadata);
-    const data = await firstValueFrom<Welcome>(source);
+    try {
+      const metadata = new Metadata();
+      metadata.set("authorization", authorization);
+      const source = this.invoiceService.getById({ id: "1000" }, metadata);
+      const data = await firstValueFrom<Invoice>(source);
 
+      console.log(data);
+
+      pubSub.publish("welcome", data.invoice.name);
+
+      return data;
+    } catch (error) {
+      throw new RpcException({ code: error.code, message: error.message });
+    }
+  }
+
+  @Query(() => Welcome, { nullable: true, name: "hello" })
+  async hello() {
+    const response = await fetch("http://192.168.31.124:4002/invoice");
+    const data = await response.json();
     return data;
   }
 
   @Throttle(10, 60)
-  @Mutation(() => String, { name: "createUser" })
+  @Mutation(() => [Queue], { name: "createUser" })
   async create() {
-    /* this.client.emit(
+    const source = this.client.emit(
       "user.create",
       JSON.stringify({ id: "1", name: "John", email: "example@email.com" })
-    ); */
+    );
+    const data = await firstValueFrom(source);
 
-    //pubSub.publish("createUser", "Usuário criado");
-
-    return "Foi";
+    return data;
   }
 
   @Mutation(() => String, { name: "userBanned" })
@@ -113,6 +144,17 @@ export class AppResolver {
     const data = await firstValueFrom(source);
 
     return data;
+  }
+
+  @SkipThrottle()
+  @Subscription(() => String, {
+    resolve(value) {
+      return value;
+    },
+    name: "welcomeWatch",
+  })
+  async welcomeWatch() {
+    return pubSub.asyncIterator("welcome");
   }
 
   @SkipThrottle()

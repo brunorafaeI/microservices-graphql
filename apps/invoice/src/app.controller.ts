@@ -1,25 +1,43 @@
-import { Metadata, ServerUnaryCall } from "@grpc/grpc-js";
-import { Controller, Get, Post } from "@nestjs/common";
-import { GrpcMethod, MessagePattern, Payload } from "@nestjs/microservices";
+import { Metadata } from "@grpc/grpc-js";
+import { Controller, Get, HttpException, Post } from "@nestjs/common";
+import {
+  GrpcMethod,
+  MessagePattern,
+  Payload,
+  RpcException,
+} from "@nestjs/microservices";
 import { randomUUID } from "crypto";
 
 @Controller({
   path: "invoice",
 })
 export class AppController {
-  @GrpcMethod("InvoiceService", "getInvoiceById")
-  async getInvoiceById(
-    data: any,
-    metadata: Metadata,
-    call: ServerUnaryCall<any, any>
-  ) {
+  @Get()
+  async getInvoiceById() {
+    return {
+      id: randomUUID(),
+      name: "2000",
+      price: 4000,
+    };
+  }
+
+  @GrpcMethod("InvoiceService", "getById")
+  async getById(data: any, metadata: Metadata) {
     const authorizatiuon = metadata.get("authorization");
-    console.log(authorizatiuon);
+    console.log("authorization", authorizatiuon);
+    console.log("data", data);
+
+    const error = true;
+    if (error) {
+      throw new RpcException({ code: 4, message: "Invoice not found!" });
+    }
 
     return {
-      id: "1000",
-      name: "2000",
-      price: 3000,
+      invoice: {
+        id: randomUUID(),
+        name: "4000",
+        price: 4000,
+      },
     };
   }
 

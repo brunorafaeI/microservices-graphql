@@ -14,6 +14,7 @@ const apollo_1 = require("@nestjs/apollo");
 const throttler_1 = require("@nestjs/throttler");
 const microservices_1 = require("@nestjs/microservices");
 const path = require("node:path");
+const app_filter_1 = require("./app.filter");
 const app_guard_1 = require("./app.guard");
 const app_resolver_1 = require("./app.resolver");
 let AppModule = class AppModule {
@@ -40,7 +41,11 @@ AppModule = __decorate([
                     transport: microservices_1.Transport.KAFKA,
                     options: {
                         client: {
+                            clientId: "user",
                             brokers: ["localhost:9092"],
+                        },
+                        consumer: {
+                            groupId: "user-consumer",
                         },
                     },
                 },
@@ -59,6 +64,10 @@ AppModule = __decorate([
         ],
         providers: [
             app_resolver_1.AppResolver,
+            {
+                provide: core_1.APP_FILTER,
+                useClass: app_filter_1.AppFilter,
+            },
             {
                 provide: core_1.APP_GUARD,
                 useClass: app_guard_1.GqlThrottlerGuard,

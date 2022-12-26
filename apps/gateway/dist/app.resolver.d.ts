@@ -7,10 +7,13 @@ export declare class Queue {
     logAppendTime: string;
     logStartOffset: string;
 }
-export declare class Welcome {
+declare class Welcome {
     id: string;
     name: string;
     price: number;
+}
+export declare class Invoice {
+    invoice: Welcome;
 }
 export declare class AppResolver {
     private readonly client;
@@ -18,10 +21,13 @@ export declare class AppResolver {
     private invoiceService;
     constructor(client: ClientKafka, invoice: ClientGrpc);
     onModuleInit(): void;
-    wellcome(ctx: any): Promise<Welcome>;
-    create(): Promise<string>;
+    welcome(ctx: any): Promise<Invoice>;
+    hello(): Promise<any>;
+    create(): Promise<any>;
     userBanned(): string;
     createInvoice(): Promise<any>;
+    welcomeWatch(): Promise<AsyncIterator<unknown, any, undefined>>;
     createUser(): Promise<AsyncIterator<unknown, any, undefined>>;
     userBannedSubscription(): Promise<AsyncIterator<unknown, any, undefined>>;
 }
+export {};

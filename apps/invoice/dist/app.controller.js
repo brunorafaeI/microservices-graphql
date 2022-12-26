@@ -16,14 +16,29 @@ exports.AppController = void 0;
 const grpc_js_1 = require("@grpc/grpc-js");
 const common_1 = require("@nestjs/common");
 const microservices_1 = require("@nestjs/microservices");
+const crypto_1 = require("crypto");
 let AppController = class AppController {
-    async getInvoiceById(data, metadata, call) {
-        const authorizatiuon = metadata.get("authorization");
-        console.log(authorizatiuon);
+    async getInvoiceById() {
         return {
-            id: "1000",
+            id: (0, crypto_1.randomUUID)(),
             name: "2000",
-            price: 3000,
+            price: 4000,
+        };
+    }
+    async getById(data, metadata) {
+        const authorizatiuon = metadata.get("authorization");
+        console.log("authorization", authorizatiuon);
+        console.log("data", data);
+        const error = true;
+        if (error) {
+            throw new microservices_1.RpcException({ code: 4, message: "Invoice not found!" });
+        }
+        return {
+            invoice: {
+                id: (0, crypto_1.randomUUID)(),
+                name: "4000",
+                price: 4000,
+            },
         };
     }
     async create(data) {
@@ -36,11 +51,17 @@ let AppController = class AppController {
     }
 };
 __decorate([
-    (0, microservices_1.GrpcMethod)("InvoiceService", "getInvoiceById"),
+    (0, common_1.Get)(),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, grpc_js_1.Metadata, Object]),
+    __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "getInvoiceById", null);
+__decorate([
+    (0, microservices_1.GrpcMethod)("InvoiceService", "getById"),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, grpc_js_1.Metadata]),
+    __metadata("design:returntype", Promise)
+], AppController.prototype, "getById", null);
 __decorate([
     (0, microservices_1.MessagePattern)("invoice.create"),
     __param(0, (0, microservices_1.Payload)()),

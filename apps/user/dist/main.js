@@ -9,10 +9,11 @@ async function bootstrap() {
         transport: microservices_1.Transport.KAFKA,
         options: {
             client: {
+                clientId: "user",
                 brokers: ["localhost:9092"],
             },
             consumer: {
-                groupId: "user",
+                groupId: "user-consumer",
             },
         },
     });

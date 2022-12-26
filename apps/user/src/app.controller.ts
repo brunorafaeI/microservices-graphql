@@ -1,5 +1,5 @@
 import { Controller, Get } from "@nestjs/common";
-import { MessagePattern, Payload } from "@nestjs/microservices";
+import { MessagePattern, Payload, Transport } from "@nestjs/microservices";
 
 @Controller({
   path: "user",
@@ -12,9 +12,14 @@ export class AppController {
     };
   }
 
-  @MessagePattern("user.create")
-  create(@Payload() data: any) {
-    console.log(data);
-    return null;
+  @MessagePattern("user.create", Transport.KAFKA)
+  async create(@Payload() data: any) {
+    const user = await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(data);
+      }, 1000);
+    });
+
+    console.log(user);
   }
 }

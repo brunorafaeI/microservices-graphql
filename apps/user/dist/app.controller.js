@@ -21,9 +21,13 @@ let AppController = class AppController {
             name: "user",
         };
     }
-    create(data) {
-        console.log(data);
-        return null;
+    async create(data) {
+        const user = await new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(data);
+            }, 1000);
+        });
+        console.log(user);
     }
 };
 __decorate([
@@ -37,7 +41,7 @@ __decorate([
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], AppController.prototype, "create", null);
 AppController = __decorate([
     (0, common_1.Controller)({
